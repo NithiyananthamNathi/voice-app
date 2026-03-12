@@ -421,6 +421,7 @@ function seedDemoData(s: NonNullable<typeof g._store>) {
     description: "AI-powered asthma consultation and patient assessment agent for respiratory health management.",
     avatar: null,
     firstMessage: "Hello! I'm here to help you with your asthma management. How have you been feeling recently?",
+    userPrompt: "",
     systemPrompt: "You are a compassionate and knowledgeable asthma consultation assistant. Your role is to:\n\n1. Assess the patient's current asthma symptoms and severity\n2. Check their rescue inhaler usage and medication adherence\n3. Provide safety education about asthma triggers and management\n4. Collect relevant health data for the medical team\n5. Determine if the patient needs urgent medical attention\n\nAlways be empathetic, ask clear questions, and provide actionable advice. If symptoms suggest an emergency, direct the patient to seek immediate medical care.",
     llmProvider: "anthropic",
     llmModel: "claude-sonnet-4-6",

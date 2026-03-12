@@ -47,6 +47,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     callerName: body.callerName || null, callerEmail: body.callerEmail || null,
     callerPhone: body.callerPhone || null, status: "active",
     duration: null, summary: null, sentiment: null, resolved: false, endedAt: null, audioUrl: null,
+    intelligence: null,
   });
   if (agent.firstMessage) {
     messages.create({ conversationId: conv.id, role: "assistant", content: agent.firstMessage,

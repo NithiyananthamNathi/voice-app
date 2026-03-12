@@ -127,6 +127,7 @@ export function seedMockConversations(agentId: string, userId: string) {
       resolved: Math.random() > 0.2,
       endedAt: new Date(createdAt.getTime() + duration * 1000).toISOString(),
       audioUrl: null,
+      intelligence: null,
     });
 
     // Override createdAt for chart distribution
