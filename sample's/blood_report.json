@@ -1,0 +1,76 @@
+[
+  {
+    "fileName": "Sample 1",
+    "reportType": "Blood Test - CBC with Differential",
+    "clinicalRelevance": "General Health Screening",
+    "resultInterpretation": {
+      "overall": "Within Normal Limits",
+      "abnormalValues": "One abnormal value: MPV elevated",
+      "criticalValues": "No critical values reported",
+      "clusters": "No multiple abnormal clusters"
+    },
+    "specialtyMapping": "Hematology",
+    "redFlags": {
+      "mpv": "11.8 fL (High)",
+      "severity": "Not immediately critical",
+      "recommendation": "Clinical correlation advised",
+      "action": "Repeat CBC if symptomatic"
+    }
+  },
+  {
+    "fileName": "Sample 2",
+    "reportType": "Blood Test - CBC with Automated Differential",
+    "clinicalRelevance": "General Health Screening",
+    "resultInterpretation": {
+      "overall": "Within Normal Limits",
+      "abnormalValues": "One abnormal value: MPV elevated",
+      "criticalValues": "No critical values reported",
+      "clusters": "No multiple abnormal clusters"
+    },
+    "specialtyMapping": "Hematology",
+    "redFlags": {
+      "mpv": "12 fL (High)",
+      "severity": "Not immediately critical",
+      "recommendation": "Clinical correlation advised",
+      "action": "Repeat CBC if symptomatic"
+    }
+  },
+  {
+    "fileName": "Sample 3",
+    "reportType": "Urinalysis with Microscopy",
+    "clinicalRelevance": "Renal function assessment",
+    "resultInterpretation": {
+      "overall": "Within Normal Limits",
+      "abnormalValues": "Two abnormal values: Turbid appearance; Specific Gravity:1.005",
+      "criticalValues": "No critical values reported"
+    },
+    "specialtyMapping": "Nephrology",
+    "redFlags": {
+      "appearance": "Turbid (Ref:Clear)",
+      "specificGravity": "1.005 (Low)",
+      "recommendation": "Follow-up recommended if symptomatic",
+      "notes": "No documented critical alerts in the report"
+    }
+  },
+  {
+    "fileName": "Sample 4",
+    "reportType": "Basic Metabolic Panel (BMP)",
+    "clinicalRelevance": "General metabolic health screening",
+    "resultInterpretation": {
+      "overall": "Most of the values are within normal limits",
+      "abnormalValues": "One abnormal value: Glucose elevated",
+      "criticalValues": "No critical values reported",
+      "notes": "No electrolyte derangements or renal impairment noted"
+    },
+    "specialtyMapping": "Family Medicine",
+    "redFlags": {
+      "glucose": "113.4 mg/dL (High)",
+      "confirmation": "Requires confirmation of fasting status",
+      "recommendations": [
+        "Fasting plasma glucose repeat",
+        "HbA1c evaluation",
+        "Lifestyle modification review"
+      ]
+    }
+  }
+]
