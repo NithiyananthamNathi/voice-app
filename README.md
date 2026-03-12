@@ -128,12 +128,24 @@ To learn more about Next.js, take a look at the following resources:
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
 - [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-## Deploy on Vercel
+## Deployment
 
+### GitHub Repository
+🔗 [https://github.com/NithiyananthamNathi/voice-app](https://github.com/NithiyananthamNathi/voice-app)
+
+### Quick Deploy to Vercel
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
+**Automatic Deployments Enabled:**
+- ✅ Push to `main` branch → Production deployment
+- ✅ Push to other branches → Preview deployments  
+- ✅ Pull requests → Automatic preview URLs
+
+For detailed deployment instructions, including Vercel, Railway, and Netlify setup, see our **[DEPLOYMENT.md](./DEPLOYMENT.md)** guide.
+
+### Required Environment Variables
 Remember to set your environment variables in the Vercel dashboard:
-- `AUTH_SECRET` - Required for production
-- `NEXTAUTH_URL` - Your production URL
+- `NEXTAUTH_SECRET` - Required for production (generate with `openssl rand -base64 32`)
+- `NEXTAUTH_URL` - Your production URL (e.g., `https://your-app.vercel.app`)
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
