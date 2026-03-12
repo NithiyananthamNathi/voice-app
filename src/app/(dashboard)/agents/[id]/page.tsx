@@ -412,7 +412,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                 createdAt: c.createdAt,
                 intelligence: c.intelligence,
               }))}
-              variant="compact"
+              compact
             />
           </CardContent>
         </Card>
