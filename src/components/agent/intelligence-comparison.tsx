@@ -62,7 +62,7 @@ export function IntelligenceComparison({ conversations }: IntelligenceComparison
     // Calculate stats for each agent
     const stats: AgentStats[] = [];
     grouped.forEach((convs, agentId) => {
-      const intelligences = convs.map((c) => c.intelligence);
+      const intelligences = convs.map((c) => c.intelligence).filter((i): i is ConversationIntelligence => i != null);
       
       // Success rate (positive emotional outcomes)
       const successCount = intelligences.filter((i) =>

@@ -58,7 +58,7 @@ export function VoiceCard({ voice, onSelect, selected }: VoiceCardProps) {
     <Card
       onClick={() => onSelect?.(voice)}
       className={cn(
-        "bg-white border-gray-200 hover:border-gray-300 transition-all cursor-pointer group shadow-sm",
+        "bg-white border-gray-200 hover:border-gray-300 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 cursor-pointer group shadow-sm",
         selected && "border-gray-900 bg-gray-50"
       )}
     >

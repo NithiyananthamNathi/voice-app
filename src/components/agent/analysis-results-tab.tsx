@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
   CheckCircle2, Loader2, Plus, Save,
   Clock, MessageSquare, Phone, X,
@@ -33,6 +34,8 @@ interface ConversationAnalysis {
   callerName: string | null;
   createdAt: string;
   mode: string;
+  duration: number | null;
+  messageCount: number;
   evaluationResults: EvalResult[];
   collectedData: { id: string; dataPointName: string; dataType: string; value: string }[];
   summary: { totalCriteria: number; passed: number; failed: number; passRate: number | null };
@@ -80,9 +83,9 @@ function EditPanel({ title, children, onClose }: { title: string; children: Reac
 
 export function AnalysisResultsTab(props: AnalysisResultsTabProps) {
   const {
-    agentId, evaluationCriteria, dataCollectionPoints, analysisLanguage,
+    agentId, evaluationCriteria, dataCollectionPoints, analysisLanguage, enableAnalysis,
     onEvaluationCriteriaChange, onDataCollectionPointsChange,
-    onAnalysisLanguageChange, isSavingAnalysis, onSaveAnalysis,
+    onAnalysisLanguageChange, onEnableAnalysisChange, isSavingAnalysis, onSaveAnalysis,
   } = props;
 
   const [conversationAnalysis, setConversationAnalysis] = useState<ConversationAnalysis[]>([]);
@@ -218,7 +221,6 @@ export function AnalysisResultsTab(props: AnalysisResultsTabProps) {
                       for (const r of conv.evaluationResults) {
                         resultMap[r.criterionName] = r.result;
                       }
-                      const msgCount = conv.evaluationResults.length > 0 ? conv.collectedData.length + conv.evaluationResults.length : 0;
 
                       return (
                         <tr key={conv.conversationId} className="hover:bg-gray-50/50 transition-colors">
@@ -241,11 +243,11 @@ export function AnalysisResultsTab(props: AnalysisResultsTabProps) {
                           <td className="px-3 py-2.5 whitespace-nowrap">
                             <span className="text-xs text-gray-600 flex items-center gap-1">
                               <Clock className="h-3 w-3 text-gray-400" />
-                              {fmtDuration(Math.floor(Math.random() * 240 + 60))}
+                              {fmtDuration(conv.duration)}
                             </span>
                           </td>
                           <td className="px-3 py-2.5 whitespace-nowrap">
-                            <span className="text-xs text-gray-600">{msgCount > 0 ? msgCount : "--"}</span>
+                            <span className="text-xs text-gray-600">{conv.messageCount > 0 ? conv.messageCount : "--"}</span>
                           </td>
                           {criterionNames.map(name => {
                             const result = resultMap[name];
@@ -347,6 +349,17 @@ export function AnalysisResultsTab(props: AnalysisResultsTabProps) {
           <button onClick={addDataPoint} className="mt-3 flex items-center gap-1.5 text-xs text-gray-700 hover:text-gray-900 font-medium">
             <Plus className="h-3 w-3" /> Add data point
           </button>
+        </div>
+
+        {/* Enable Analysis */}
+        <div className="bg-white border border-gray-200 rounded-xl p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">Enable Analysis</h3>
+              <p className="text-[11px] text-gray-400 mt-0.5">Run evaluation after each conversation ends</p>
+            </div>
+            <Switch checked={enableAnalysis} onCheckedChange={onEnableAnalysisChange} />
+          </div>
         </div>
 
         {/* Analysis Language */}

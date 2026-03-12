@@ -68,25 +68,15 @@ export default function AgentsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6 pb-2">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2.5 bg-gray-900 rounded-xl">
-              <Bot className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Agents</h1>
-            </div>
-          </div>
-          <p className="text-gray-600 text-base">
-            Create and manage your AI voice agents for powerful automated conversations
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Agents</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Create and manage your AI voice agents
           </p>
         </div>
         <Link href="/agents/new">
-          <Button 
-            size="lg"
-            className="bg-gray-900 hover:bg-gray-800 text-white shadow-lg hover:shadow-xl transition-all"
-          >
+          <Button className="bg-gray-900 hover:bg-gray-800 text-white">
             <Plus className="h-4 w-4 mr-2" />
             Create Agent
           </Button>
@@ -145,12 +135,12 @@ export default function AgentsPage() {
             placeholder="Search agents by name or description..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-11 bg-white border-gray-200 h-11 focus:border-gray-900 transition-colors text-gray-900 placeholder:text-gray-400"
+            className="pl-11 bg-white border-gray-200 h-9 focus:border-gray-900 transition-colors text-gray-900 placeholder:text-gray-400"
           />
         </div>
         <Button 
           variant="outline" 
-          className="border-gray-200 text-gray-700 hover:border-gray-900 hover:bg-gray-50 h-11 px-6"
+          className="border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50 h-9"
         >
           <SlidersHorizontal className="h-4 w-4 mr-2" />
           Filters

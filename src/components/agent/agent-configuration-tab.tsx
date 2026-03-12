@@ -254,7 +254,7 @@ export function AgentConfigurationTab(props: AgentConfigurationTabProps) {
                   const provider = llmProviders.find(p => p.id === v);
                   if (provider?.models[0]) setBackupLlmModel(provider.models[0]);
                 }}>
-                  <SelectTrigger className="bg-white border-gray-200 h-9 text-xs">
+                  <SelectTrigger className="w-full bg-white border-gray-200 h-9 text-xs">
                     <SelectValue placeholder="Select provider" />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
@@ -268,7 +268,7 @@ export function AgentConfigurationTab(props: AgentConfigurationTabProps) {
               <div>
                 <Label className="text-xs font-medium text-gray-700 mb-1.5 block">Model</Label>
                 <Select value={backupLlmModel} onValueChange={setBackupLlmModel}>
-                  <SelectTrigger className="bg-white border-gray-200 h-9 text-xs">
+                  <SelectTrigger className="w-full bg-white border-gray-200 h-9 text-xs">
                     <SelectValue placeholder="Select model" />
                   </SelectTrigger>
                   <SelectContent className="bg-white">

@@ -65,7 +65,7 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
 
   return (
     <Card
-      className="relative bg-gray-50 border-0 hover:bg-gray-100 transition-all duration-200 group cursor-pointer overflow-hidden shadow-none"
+      className="relative bg-gray-50 border-0 hover:bg-gray-100 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-200 group cursor-pointer overflow-hidden shadow-none"
       onClick={handleCardClick}
     >
       

@@ -379,14 +379,14 @@ export default function ConversationsPage() {
   );
 
   return (
-    <div className="space-y-5">
+    <div className="flex flex-col h-full gap-5">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Conversation history</h1>
         <p className="text-sm text-gray-500 mt-0.5">All conversations across your agents</p>
       </div>
 
       {/* Filters */}
-      <div className="bg-white border border-gray-200 rounded-xl p-3">
+      <div className="bg-white border border-gray-200 rounded-xl p-3 shrink-0">
         <div className="flex flex-wrap gap-3">
           <div className="flex-1 min-w-[200px] relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -414,14 +414,14 @@ export default function ConversationsPage() {
       </div>
 
       {/* Two-panel layout */}
-      <div className="grid gap-4 lg:grid-cols-12">
+      <div className="flex-1 min-h-0 grid gap-4 lg:grid-cols-12">
         {/* Left: Conversation list */}
-        <div className="lg:col-span-4 bg-white border border-gray-200 rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+        <div className="lg:col-span-4 bg-white border border-gray-200 rounded-xl overflow-hidden flex flex-col min-h-0">
+          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between shrink-0">
             <h2 className="text-sm font-semibold text-gray-900">Conversations</h2>
             <span className="text-xs text-gray-400">{filtered.length} results</span>
           </div>
-          <ScrollArea className="h-[700px]">
+          <ScrollArea className="flex-1 min-h-0">
             {filtered.length === 0 ? (
               <div className="p-8 text-center">
                 <MessageSquare className="h-10 w-10 mx-auto text-gray-200 mb-3" />
@@ -489,9 +489,9 @@ export default function ConversationsPage() {
         </div>
 
         {/* Right: Detail panel */}
-        <div className="lg:col-span-8 flex gap-4">
+        <div className="lg:col-span-8 flex gap-4 min-h-0">
           {/* Main content */}
-          <div className="flex-1 bg-white border border-gray-200 rounded-xl overflow-hidden flex flex-col">
+          <div className="flex-1 bg-white border border-gray-200 rounded-xl overflow-hidden flex flex-col min-h-0">
             {!selected ? (
               <div className="flex-1 flex items-center justify-center p-12">
                 <div className="text-center">
@@ -592,8 +592,8 @@ export default function ConversationsPage() {
                   </TabsList>
 
                   {/* Transcript Tab */}
-                  <TabsContent value="transcript" className="flex-1 m-0">
-                    <ScrollArea className="h-[500px]">
+                  <TabsContent value="transcript" className="flex-1 m-0 overflow-hidden">
+                    <ScrollArea className="h-full">
                       {selected.messages.length === 0 ? (
                         <p className="text-xs text-gray-400 text-center py-8">No messages</p>
                       ) : (
@@ -635,8 +635,8 @@ export default function ConversationsPage() {
                   </TabsContent>
 
                   {/* Evaluation Tab */}
-                  <TabsContent value="evaluation" className="flex-1 m-0">
-                    <ScrollArea className="h-[500px]">
+                  <TabsContent value="evaluation" className="flex-1 m-0 overflow-hidden">
+                    <ScrollArea className="h-full">
                       <div className="p-5">
                         {loadingAnalysis ? (
                           <p className="text-xs text-gray-400 text-center py-8">Loading evaluation...</p>
@@ -676,8 +676,8 @@ export default function ConversationsPage() {
                   </TabsContent>
 
                   {/* Data Tab */}
-                  <TabsContent value="data" className="flex-1 m-0">
-                    <ScrollArea className="h-[500px]">
+                  <TabsContent value="data" className="flex-1 m-0 overflow-hidden">
+                    <ScrollArea className="h-full">
                       <div className="p-5">
                         {loadingAnalysis ? (
                           <p className="text-xs text-gray-400 text-center py-8">Loading data...</p>
@@ -731,8 +731,8 @@ export default function ConversationsPage() {
                   </TabsContent>
 
                   {/* Intelligence Tab */}
-                  <TabsContent value="intelligence" className="flex-1 m-0">
-                    <ScrollArea className="h-[500px]">
+                  <TabsContent value="intelligence" className="flex-1 m-0 overflow-hidden">
+                    <ScrollArea className="h-full">
                       <div className="p-5">
                         {loadingAnalysis ? (
                           <p className="text-xs text-gray-400 text-center py-8">Loading intelligence...</p>

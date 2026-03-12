@@ -136,7 +136,7 @@ export function AgentSettingsTab(props: AgentSettingsTabProps) {
           <h3 className="text-sm font-semibold text-gray-900 mb-0.5">Language</h3>
           <p className="text-[11px] text-gray-400 mb-3">Configure default and additional languages.</p>
           <Select value={language} onValueChange={setLanguage}>
-            <SelectTrigger className="bg-white border-gray-200 h-9 text-xs"><SelectValue placeholder="Select language" /></SelectTrigger>
+            <SelectTrigger className="w-full bg-white border-gray-200 h-9 text-xs"><SelectValue placeholder="Select language" /></SelectTrigger>
             <SelectContent className="bg-white">
               <SelectItem value="en">English</SelectItem>
               <SelectItem value="es">Spanish</SelectItem>
@@ -161,13 +161,13 @@ export function AgentSettingsTab(props: AgentSettingsTabProps) {
               const provider = llmProviders.find(p => p.id === v);
               if (provider?.models[0]) setLlmModel(provider.models[0]);
             }}>
-              <SelectTrigger className="bg-white border-gray-200 h-9 text-xs"><SelectValue placeholder="Select provider" /></SelectTrigger>
+              <SelectTrigger className="w-full bg-white border-gray-200 h-9 text-xs"><SelectValue placeholder="Select provider" /></SelectTrigger>
               <SelectContent className="bg-white">
                 {llmProviders.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={llmModel} onValueChange={setLlmModel}>
-              <SelectTrigger className="bg-white border-gray-200 h-9 text-xs"><SelectValue placeholder="Select model" /></SelectTrigger>
+              <SelectTrigger className="w-full bg-white border-gray-200 h-9 text-xs"><SelectValue placeholder="Select model" /></SelectTrigger>
               <SelectContent className="bg-white">
                 {selectedProvider?.models.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
               </SelectContent>
@@ -177,7 +177,7 @@ export function AgentSettingsTab(props: AgentSettingsTabProps) {
               <div className="pt-2 border-t border-gray-100">
                 <Label className="text-[11px] text-gray-500">Extended Thinking</Label>
                 <Select value={thinkingBudget || "disabled"} onValueChange={(v) => setThinkingBudget(v === "disabled" ? null : v)}>
-                  <SelectTrigger className="bg-white border-gray-200 h-9 text-xs mt-1"><SelectValue placeholder="Disabled" /></SelectTrigger>
+                  <SelectTrigger className="w-full bg-white border-gray-200 h-9 text-xs mt-1"><SelectValue placeholder="Disabled" /></SelectTrigger>
                   <SelectContent className="bg-white">
                     <SelectItem value="disabled">Disabled</SelectItem>
                     <SelectItem value="low">Low</SelectItem>
@@ -202,13 +202,13 @@ export function AgentSettingsTab(props: AgentSettingsTabProps) {
                   const provider = llmProviders.find(p => p.id === v);
                   if (provider?.models[0]) setBackupLlmModel(provider.models[0]);
                 }}>
-                  <SelectTrigger className="bg-white border-gray-200 h-9 text-xs"><SelectValue placeholder="Select provider" /></SelectTrigger>
+                  <SelectTrigger className="w-full bg-white border-gray-200 h-9 text-xs"><SelectValue placeholder="Select provider" /></SelectTrigger>
                   <SelectContent className="bg-white">
                     {llmProviders.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <Select value={backupLlmModel} onValueChange={setBackupLlmModel}>
-                  <SelectTrigger className="bg-white border-gray-200 h-9 text-xs"><SelectValue placeholder="Select model" /></SelectTrigger>
+                  <SelectTrigger className="w-full bg-white border-gray-200 h-9 text-xs"><SelectValue placeholder="Select model" /></SelectTrigger>
                   <SelectContent className="bg-white">
                     {llmProviders.find(p => p.id === backupLlmProvider)?.models.map(m => (
                       <SelectItem key={m} value={m}>{m}</SelectItem>

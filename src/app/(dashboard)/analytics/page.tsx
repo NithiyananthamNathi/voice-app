@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -124,7 +124,7 @@ export default function AnalyticsPage() {
   const textCount = allConversations.filter(c => c.mode === "text").length;
   const totalDuration = allConversations.reduce((s, c) => s + (c.duration || 0), 0);
   const avgDuration = totalConversations > 0 ? Math.round(totalDuration / totalConversations) : 0;
-  const activeCount = allConversations.filter(c => c.status === "active").length;
+
 
   const withEval = allConversations.filter(c => c.evaluation);
   const avgPassRate = withEval.length > 0
@@ -231,13 +231,14 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Analysis Analytics</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Evaluation criteria & data collection insights</p>
-        </div>
-        <div className="flex items-center gap-3">
+      {/* Sticky Header */}
+      <div className="sticky -top-6 z-10 bg-white -mx-6 px-6 -mt-6 pt-5 pb-4 border-b border-gray-100">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Evaluation criteria & data collection insights</p>
+          </div>
+          <div className="flex items-center gap-3">
           <Select value={filterAgent} onValueChange={setFilterAgent}>
             <SelectTrigger className="w-[180px] bg-white border-gray-200 h-9">
               <SelectValue placeholder="All Agents" />
@@ -257,6 +258,7 @@ export default function AnalyticsPage() {
               <SelectItem value="90d">Last 90 days</SelectItem>
             </SelectContent>
           </Select>
+          </div>
         </div>
       </div>
 
@@ -553,9 +555,9 @@ export default function AnalyticsPage() {
               {allConversations
                 .filter(c => c.evaluation)
                 .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                .slice(0, 12)
+                .slice(0, 4)
                 .map(conv => {
-                  const agentName = agentData.find(d => d.conversations.some(c => c.id === conv.id))?.agent.name;
+                  const agentName = conv.agentName;
                   return (
                     <div key={conv.id} className="px-5 py-3 flex items-center gap-4">
                       <div className={cn(
@@ -624,16 +626,16 @@ export default function AnalyticsPage() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6">
-              <TabsTrigger value="overview" className="gap-2">
+            <TabsList className="grid w-full grid-cols-3 mb-6 h-10 bg-gray-100 p-1 rounded-lg">
+              <TabsTrigger value="overview" className="gap-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-gray-500 rounded-md transition-all">
                 <BarChart3 className="w-4 h-4" />
                 Overview
               </TabsTrigger>
-              <TabsTrigger value="trends" className="gap-2">
+              <TabsTrigger value="trends" className="gap-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-gray-500 rounded-md transition-all">
                 <LineChartIcon className="w-4 h-4" />
                 Trends & Insights
               </TabsTrigger>
-              <TabsTrigger value="comparison" className="gap-2">
+              <TabsTrigger value="comparison" className="gap-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-gray-500 rounded-md transition-all">
                 <TrendingUp className="w-4 h-4" />
                 Agent Comparison
               </TabsTrigger>
@@ -650,13 +652,15 @@ export default function AnalyticsPage() {
             </TabsContent>
             
             <TabsContent value="trends">
-              <IntelligenceTrends
-                conversations={allConversations.map(c => ({
-                  id: c.id,
-                  createdAt: c.createdAt,
-                  intelligence: c.intelligence,
-                }))}
-              />
+              <Suspense fallback={<div className="h-40 flex items-center justify-center text-sm text-gray-400">Loading trends...</div>}>
+                <IntelligenceTrends
+                  conversations={allConversations.map(c => ({
+                    id: c.id,
+                    createdAt: c.createdAt,
+                    intelligence: c.intelligence,
+                  }))}
+                />
+              </Suspense>
             </TabsContent>
             
             <TabsContent value="comparison">

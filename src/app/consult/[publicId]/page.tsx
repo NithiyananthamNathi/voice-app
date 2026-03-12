@@ -145,6 +145,9 @@ export default function PublicConsultPage({
   const [callDuration, setCallDuration] = useState(0);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [streamedMsgId, setStreamedMsgId] = useState<string | null>(null);
+  const [streamedCount, setStreamedCount] = useState(0);
+  const [orbSize, setOrbSize] = useState(90);
 
   // Refs
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -172,7 +175,14 @@ export default function PublicConsultPage({
   // voiceAutoMode: true once user manually clicks mic → enables auto-cycle (AI speaks → auto-start mic)
   // Reset to false when user manually stops mic
   const voiceAutoModeRef = useRef(false);
+  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSendVoiceRef = useRef<((text: string) => void) | null>(null);
   const voiceDropdownRef = useRef<HTMLDivElement>(null);
+  // Queue of user text messages to be silently TTS'd into the recording
+  const textRecordQueueRef = useRef<string[]>([]);
+  const streamIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const streamContentRef = useRef<string>("");
+  const textRecordBusyRef = useRef(false);
 
   // ── Fetch agent ──────────────────────────────────────────────────
   const fetchAgent = useCallback(async () => {
@@ -230,6 +240,76 @@ export default function PublicConsultPage({
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages]);
   useEffect(() => { if (chatError) { const t = setTimeout(() => setChatError(""), 5000); return () => clearTimeout(t); } }, [chatError]);
+
+  // Responsive orb size: 90 on mobile, 150 on desktop (md = 768px)
+  useEffect(() => {
+    const update = () => setOrbSize(window.innerWidth >= 768 ? 150 : 90);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  // Character-by-character streaming synced to TTS audio playback.
+  // Polls for the audio element, then uses RAF to reveal text proportionally
+  // to audio.currentTime / audio.duration. Falls back to fixed rate when
+  // TTS is off or audio never starts within 2 s.
+  useEffect(() => {
+    if (!streamedMsgId) return;
+    const total = streamContentRef.current.length;
+    if (total === 0) { setStreamedMsgId(null); return; }
+
+    let rafId: number;
+    let cleanedUp = false;
+
+    const fixedRate = () => {
+      const msPerChar = Math.max(15, Math.round(5000 / total));
+      let count = 0;
+      streamIntervalRef.current = setInterval(() => {
+        if (cleanedUp) { clearInterval(streamIntervalRef.current!); return; }
+        count++;
+        setStreamedCount(count);
+        if (count >= total) { clearInterval(streamIntervalRef.current!); setStreamedMsgId(null); }
+      }, msPerChar);
+    };
+
+    const syncToAudio = (audio: HTMLAudioElement) => {
+      if (cleanedUp) return;
+      const dur = audio.duration;
+      if (!dur || !isFinite(dur)) {
+        rafId = requestAnimationFrame(() => syncToAudio(audio));
+        return;
+      }
+      const progress = Math.min(audio.currentTime / dur, 1);
+      const newCount = Math.min(Math.round(progress * total), total);
+      setStreamedCount(newCount);
+      if (audio.ended || newCount >= total) {
+        setStreamedCount(total);
+        setStreamedMsgId(null);
+        return;
+      }
+      rafId = requestAnimationFrame(() => syncToAudio(audio));
+    };
+
+    let pollAttempts = 0;
+    const pollIv = setInterval(() => {
+      if (cleanedUp) { clearInterval(pollIv); return; }
+      const audio = ttsSourceRef.current;
+      if (audio) {
+        clearInterval(pollIv);
+        syncToAudio(audio);
+      } else if (++pollAttempts > 40) {
+        clearInterval(pollIv);
+        fixedRate();
+      }
+    }, 50);
+
+    return () => {
+      cleanedUp = true;
+      clearInterval(pollIv);
+      if (streamIntervalRef.current) clearInterval(streamIntervalRef.current);
+      cancelAnimationFrame(rafId);
+    };
+  }, [streamedMsgId]);
 
   // Scroll-to-bottom button visibility
   useEffect(() => {
@@ -361,8 +441,13 @@ export default function PublicConsultPage({
       if (msgRes.ok) {
         const msgs = await msgRes.json();
         setMessages(msgs);
-        if (msgs.length > 0 && audioEnabled && agent.voiceEnabled) {
-          speakMessage(msgs[0].content);
+        if (msgs.length > 0) {
+          streamContentRef.current = msgs[0].content;
+          setStreamedMsgId(msgs[0].id);
+          setStreamedCount(0);
+          if (audioEnabled && agent.voiceEnabled) {
+            speakMessage(msgs[0].content);
+          }
           // Auto-mic only starts if user has manually clicked mic (voiceAutoModeRef)
         }
         // No auto-start listening on load — user must click mic manually first
@@ -491,18 +576,29 @@ export default function PublicConsultPage({
         const mediaSource = ctx.createMediaElementSource(audio);
         mediaSource.connect(ctx.destination);  // live playback
         mediaSource.connect(mixedDest);         // captured in recording
+        // Tap TTS into analyser so orb reacts to AI voice amplitude in real-time
+        const ttsAnalyser = ctx.createAnalyser();
+        ttsAnalyser.fftSize = 256; ttsAnalyser.smoothingTimeConstant = 0.5;
+        mediaSource.connect(ttsAnalyser);
+        analyserRef.current = ttsAnalyser;
+        cancelAnimationFrame(audioLevelFrameRef.current);
+        updateAudioLevel();
       }
 
       ttsSourceRef.current = audio;
       setIsSpeaking(true);
       audio.onended = () => {
-        setIsSpeaking(false);
+        setIsSpeaking(false); setAudioLevel(0);
+        cancelAnimationFrame(audioLevelFrameRef.current);
+        analyserRef.current = null;
         URL.revokeObjectURL(url);
         ttsSourceRef.current = null;
         reconnectMic();
       };
       audio.onerror = () => {
-        setIsSpeaking(false);
+        setIsSpeaking(false); setAudioLevel(0);
+        cancelAnimationFrame(audioLevelFrameRef.current);
+        analyserRef.current = null;
         URL.revokeObjectURL(url);
         ttsSourceRef.current = null;
         reconnectMic();
@@ -542,6 +638,16 @@ export default function PublicConsultPage({
       // Side effects OUTSIDE the state updater so React properly commits
       // messages before voiceState transitions to "speaking"
       if (assistantMessage) {
+        streamContentRef.current = assistantMessage.content;
+        setStreamedMsgId(assistantMessage.id);
+        setStreamedCount(0);
+        // Wait for any queued user text TTS to finish recording before agent speaks
+        if (textRecordBusyRef.current) {
+          await new Promise<void>(resolve => {
+            const check = () => { if (!textRecordBusyRef.current) resolve(); else setTimeout(check, 100); };
+            check();
+          });
+        }
         if (audioEnabled) speakMessage(assistantMessage.content);
         setTimeout(() => saveCurrentRecording(), 1200);
       }
@@ -552,6 +658,47 @@ export default function PublicConsultPage({
     } finally { setIsSending(false); }
   };
 
+  // Silently play user text as TTS into the recording (not audible live)
+  // Sequential: waits for agent speech + previous items before recording each
+  const processTextRecordQueue = async () => {
+    if (textRecordBusyRef.current) return;
+    textRecordBusyRef.current = true;
+    while (textRecordQueueRef.current.length > 0) {
+      const text = textRecordQueueRef.current.shift()!;
+      // Wait for any ongoing agent speech to finish first
+      if (ttsSourceRef.current) {
+        await new Promise<void>(resolve => {
+          const check = () => { if (!ttsSourceRef.current) resolve(); else setTimeout(check, 100); };
+          check();
+        });
+      }
+      const ctx = audioContextRef.current;
+      const mixedDest = mixedDestRef.current;
+      if (!ctx || !mixedDest) continue;
+      try {
+        const res = await fetch(`/api/tts?text=${encodeURIComponent(text)}&lang=en`);
+        if (!res.ok) continue;
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        if (ctx.state === "suspended") await ctx.resume();
+        const src = ctx.createMediaElementSource(audio);
+        // Silent gain — captured in recording but not heard live
+        const silentGain = ctx.createGain();
+        silentGain.gain.value = 0;
+        src.connect(silentGain);
+        silentGain.connect(ctx.destination);
+        src.connect(mixedDest);
+        await new Promise<void>(resolve => {
+          audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
+          audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+          audio.play().catch(() => { URL.revokeObjectURL(url); resolve(); });
+        });
+      } catch { /* ignore */ }
+    }
+    textRecordBusyRef.current = false;
+  };
+
   const handleSendText = () => {
     if (!input.trim()) return;
     // If user types and sends while voice is active, stop listening first
@@ -560,6 +707,9 @@ export default function PublicConsultPage({
       stopListening();
     }
     const text = input; setInput("");
+    // Queue text for silent TTS capture into recording (sequential, not live)
+    textRecordQueueRef.current.push(text);
+    processTextRecordQueue();
     sendMessage(text, false);
   };
 
@@ -577,8 +727,10 @@ export default function PublicConsultPage({
     }
     analyserRef.current = null;
     setIsRecording(false); setAudioLevel(0);
+    if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
     sendMessage(text, true);
   };
+  autoSendVoiceRef.current = autoSendVoice;
 
   const endCall = () => {
     // Cancel any in-flight TTS
@@ -790,8 +942,9 @@ const previewVoice = async (voiceId: string) => {
   // ── Conversation View ────────────────────────────────────────────
   return (
     <div className="h-screen bg-white flex flex-col overflow-hidden">
+
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-3.5 bg-white border-b border-gray-200 z-10 shrink-0">
+      <header className="flex items-center justify-between px-6 py-3.5 bg-white border-b border-gray-100 z-10 shrink-0">
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center text-sm font-semibold text-gray-700">
             {initials}
@@ -801,20 +954,18 @@ const previewVoice = async (voiceId: string) => {
             <p className="text-xs text-gray-500">
               {callEnded
                 ? `Call ended · ${fmtTime(callDuration)}`
-                : <>
-                    <span className={cn(
-                      "inline-flex items-center gap-1",
-                      voiceState === "listening" && "text-emerald-600",
-                      voiceState === "speaking" && "text-indigo-600",
-                      voiceState === "thinking" && "text-amber-600",
-                    )}>
-                      {voiceState === "listening" && "● Listening"}
-                      {voiceState === "thinking" && "● Thinking"}
-                      {voiceState === "speaking" && "● Speaking"}
-                      {voiceState === "idle" && "Connected"}
-                    </span>
-                    {callDuration > 0 && <span className="text-gray-400"> · {fmtTime(callDuration)}</span>}
-                  </>
+                : <span className={cn(
+                    "inline-flex items-center gap-1",
+                    voiceState === "listening" && "text-emerald-600",
+                    voiceState === "speaking" && "text-indigo-600",
+                    voiceState === "thinking" && "text-amber-600",
+                  )}>
+                    {voiceState === "listening" && "● Listening"}
+                    {voiceState === "thinking" && "● Thinking"}
+                    {voiceState === "speaking" && "● Speaking"}
+                    {voiceState === "idle" && "● Connected"}
+                    {callDuration > 0 && <span className="text-gray-400 ml-1">· {fmtTime(callDuration)}</span>}
+                  </span>
               }
             </p>
           </div>
@@ -839,207 +990,215 @@ const previewVoice = async (voiceId: string) => {
         </div>
       </header>
 
-      {/* Messages area — full height from header to orb, scrollbar near content */}
-      <div className="flex-[65] min-h-0 overflow-hidden">
-        <div className="h-full max-w-3xl mx-auto overflow-y-auto" ref={scrollRef}>
-        <div className="space-y-4 px-6 py-6">
-          {messages.map((msg) => (
-            <div key={msg.id} className={cn("flex gap-3 group/msg", msg.role === "user" ? "flex-row-reverse" : "")}>
-              <div className={cn(
-                "h-8 w-8 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold",
-                msg.role === "assistant" ? "bg-gray-100 text-gray-600" : "bg-gray-900 text-white"
-              )}>
-                {msg.role === "assistant" ? initials[0] : "U"}
-              </div>
-              <div className={cn(
-                "max-w-[75%] rounded-2xl px-4 py-3",
-                msg.role === "assistant"
-                  ? "bg-gray-50 border border-gray-200 text-gray-900"
-                  : "bg-gray-900 text-white"
-              )}>
-                {msg.isVoiceInput && (
-                  <span className={cn("text-xs flex items-center gap-1 mb-1.5", msg.role === "user" ? "text-gray-400" : "text-gray-400")}>
-                    <Mic className="h-3 w-3" /> Voice
-                  </span>
-                )}
-                <p className="text-sm leading-relaxed">{msg.content}</p>
-                <div className={cn("flex items-center gap-2 mt-1.5", msg.role === "user" ? "justify-end" : "")}>
-                  <span className={cn("text-xs", msg.role === "assistant" ? "text-gray-400" : "text-gray-500")}>
-                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                  <button
-                    onClick={() => copyMessage(msg.id, msg.content)}
-                    title="Copy message"
-                    className="opacity-0 group-hover/msg:opacity-100 transition-opacity"
-                  >
-                    {copiedId === msg.id
-                      ? <CheckCheck className="h-3 w-3 text-emerald-500" />
-                      : <Copy className={cn("h-3 w-3", msg.role === "assistant" ? "text-gray-400 hover:text-gray-600" : "text-gray-500 hover:text-gray-300")} />
-                    }
-                  </button>
+      {/*
+        Mobile:  flex-col  →  Messages 65%  |  Orb strip 35%  |  Input bar
+        Desktop: CSS grid  →  Orb col-1 full-height  |  Messages col-2 row-1  /  Input col-2 row-2
+      */}
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col md:grid md:grid-cols-[35%_65%] md:grid-rows-[1fr_auto]">
+
+        {/* ── 1. Messages ── top 65% on mobile | right col / top row on desktop ── */}
+        <div className="flex-[65] min-h-0 overflow-y-auto md:col-start-2 md:row-start-1" ref={scrollRef}>
+          <div className="space-y-3 px-4 py-4">
+            {messages.map((msg) => (
+              <div key={msg.id} className={cn("flex gap-2 group/msg items-end", msg.role === "user" ? "flex-row-reverse" : "")}>
+                <div className={cn(
+                  "h-7 w-7 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold",
+                  msg.role === "assistant" ? "bg-gray-100 text-gray-600" : "bg-gray-900 text-white"
+                )}>
+                  {msg.role === "assistant" ? initials[0] : "U"}
+                </div>
+                <div className={cn(
+                  "max-w-[78%] rounded-2xl px-3 py-2.5",
+                  msg.role === "assistant"
+                    ? "bg-gray-50 border border-gray-200 text-gray-900"
+                    : "bg-gray-900 text-white"
+                )}>
+                  {msg.isVoiceInput && (
+                    <span className={cn("text-xs flex items-center gap-1 mb-1", msg.role === "user" ? "text-gray-400 justify-end" : "text-gray-400")}>
+                      <Mic className="h-3 w-3" /> Voice
+                    </span>
+                  )}
+                  <p className="text-sm leading-relaxed">
+                    {msg.id === streamedMsgId
+                      ? streamContentRef.current.slice(0, streamedCount)
+                      : msg.content}
+                  </p>
+                  <div className={cn("flex items-center gap-2 mt-1", msg.role === "user" ? "justify-end" : "")}>
+                    <span className={cn("text-xs", msg.role === "assistant" ? "text-gray-400" : "text-gray-500")}>
+                      {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                    <button
+                      onClick={() => copyMessage(msg.id, msg.content)}
+                      title="Copy message"
+                      className="opacity-0 group-hover/msg:opacity-100 transition-opacity"
+                    >
+                      {copiedId === msg.id
+                        ? <CheckCheck className="h-3 w-3 text-emerald-500" />
+                        : <Copy className={cn("h-3 w-3", msg.role === "assistant" ? "text-gray-400 hover:text-gray-600" : "text-gray-500 hover:text-gray-300")} />
+                      }
+                    </button>
+                  </div>
                 </div>
               </div>
+            ))}
+            {isSending && (
+              <div className="flex gap-2 items-end">
+                <div className="h-7 w-7 rounded-full bg-gray-100 flex items-center justify-center text-xs text-gray-600 font-semibold shrink-0">{initials[0]}</div>
+                <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" />
+                    <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0.15s]" />
+                    <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0.3s]" />
+                  </div>
+                </div>
+              </div>
+            )}
+            {messages.length === 0 && !isSending && (
+              <div className="flex items-center justify-center h-24">
+                <p className="text-sm text-gray-400">Starting conversation...</p>
+              </div>
+            )}
+          </div>
+
+          {/* Scroll-to-bottom FAB */}
+          {showScrollBtn && (
+            <div className="sticky bottom-4 flex justify-center z-20 pointer-events-none">
+              <button
+                onClick={() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })}
+                className="pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-full shadow-lg hover:bg-gray-800 transition"
+              >
+                <ChevronsDown className="h-3.5 w-3.5" />
+                Scroll to latest
+              </button>
             </div>
-          ))}
-          {isSending && (
-            <div className="flex gap-3">
-              <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-xs text-gray-600 font-semibold shrink-0">{initials[0]}</div>
-              <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.15s]" />
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.3s]" />
-                </div>
+          )}
+        </div>
+
+        {/* ── 2. Orb strip ── middle 35% on mobile | left col full-height on desktop ── */}
+        <div className="flex-[35] md:col-start-1 md:row-start-1 md:row-span-2 flex flex-col items-center justify-center bg-white md:border-r border-gray-100 overflow-visible relative">
+          {callEnded ? (
+            <div className="flex flex-col items-center text-center px-6">
+              <div className="h-12 w-12 rounded-full bg-red-50 flex items-center justify-center mb-3">
+                <PhoneOff className="h-5 w-5 text-red-500" />
+              </div>
+              <p className="text-sm font-semibold text-gray-900">Call Ended</p>
+              <p className="text-xs text-gray-500 mt-1">{messages.length} messages · {fmtTime(callDuration)}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-4 px-7 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition"
+              >
+                New Chat
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center w-full h-full px-4 py-3 gap-4">
+              <AIOrb
+                state={isSpeaking ? "speaking" : isRecording ? "listening" : "idle"}
+                size={orbSize}
+                audioLevel={audioLevel}
+              />
+              {/* Text/button zone — fixed height so orb never shifts when Send button appears */}
+              <div className="flex flex-col items-center gap-2 w-full max-w-[240px] h-[64px] md:h-[88px] overflow-hidden">
+                {isRecording && (transcript || interimTranscript) ? (
+                  <>
+                    <p className={cn(
+                      "text-base md:text-xl text-gray-700 leading-snug text-center line-clamp-2 md:line-clamp-3",
+                      transcript.trim() && "md:font-semibold"
+                    )}>
+                      {transcript}<span className="text-gray-400">{interimTranscript}</span>
+                    </p>
+                    {transcript.trim() && (
+                      <button
+                        onClick={() => autoSendVoice(transcript.trim())}
+                        className="px-5 py-1.5 bg-gray-900 text-white text-xs font-medium rounded-full hover:bg-gray-800 transition"
+                      >
+                        Send
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-xs md:text-sm md:font-semibold md:text-gray-600 text-gray-400 text-center">
+                    {voiceState === "speaking" ? "Speaking…" : voiceState === "thinking" ? "Thinking…" : voiceState === "listening" ? "Listening…" : ""}
+                  </p>
+                )}
               </div>
             </div>
           )}
-          {messages.length === 0 && !isSending && (
-            <div className="flex items-center justify-center h-32">
-              <p className="text-sm text-gray-400">Starting conversation...</p>
-            </div>
-          )}
         </div>
 
-        {/* Scroll-to-bottom FAB */}
-        {showScrollBtn && (
-          <div className="sticky bottom-4 flex justify-center z-20 pointer-events-none">
-            <button
-              onClick={() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })}
-              className="pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-full shadow-lg hover:bg-gray-800 transition"
-            >
-              <ChevronsDown className="h-3.5 w-3.5" />
-              Scroll to latest
-            </button>
-          </div>
-        )}
-        </div>
-      </div>
-
-      {/* Voice orb — always visible during call, messages scroll ABOVE it */}
-      {!callEnded && (isSpeaking || isRecording) && (
-        <div className="flex-[35] min-h-0 flex flex-col items-center justify-center">
-          <AIOrb
-            state={isSpeaking || isRecording ? "speaking" : "idle"}
-            size="sm"
-          />
-          <div className="mt-3 min-h-[18px] max-w-xl w-full text-center px-6">
-            {isRecording && (transcript || interimTranscript) && (
-              <p className="text-sm text-gray-700">
-                {transcript}<span className="text-gray-400">{interimTranscript}</span>
-              </p>
+        {/* ── 3. Input bar ── bottom on mobile | right col / bottom row on desktop ── */}
+        {!callEnded && (
+          <div className="shrink-0 md:col-start-2 md:row-start-2 bg-white">
+            {chatError && (
+              <div className="mx-3 mb-1.5 px-3 py-2 bg-red-50 text-red-600 text-xs rounded-lg text-center border border-red-200">{chatError}</div>
             )}
-            {isSpeaking && messages.length > 0 && messages[messages.length - 1].role === "assistant" && (
-              <p className="text-xs text-gray-400 line-clamp-1">{messages[messages.length - 1].content}</p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Call ended summary */}
-      {callEnded && (
-        <div className="flex flex-col items-center px-6 py-6 border-t border-gray-100 shrink-0">
-          <div className="text-center bg-white px-10 py-5 rounded-xl border border-gray-200">
-            <div className="h-12 w-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-3">
-              <PhoneOff className="h-5 w-5 text-red-500" />
-            </div>
-            <p className="text-sm font-semibold text-gray-900">Call Ended</p>
-            <p className="text-xs text-gray-500 mt-1">{messages.length} messages · {fmtTime(callDuration)}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-4 px-8 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition"
-            >
-              New Chat
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Error */}
-      {chatError && (
-        <div className="mx-6 mb-2 px-4 py-2 bg-red-50 text-red-600 text-sm rounded-lg text-center border border-red-200 shrink-0">{chatError}</div>
-      )}
-
-      {/* Bottom input bar */}
-      {!callEnded && (
-        <div className="bg-white px-6 py-4 shrink-0">
-          <form
-            onSubmit={(e) => { e.preventDefault(); handleSendText(); }}
-            className="flex items-center gap-2 max-w-3xl mx-auto"
-          >
-            {/* Mic button — only in voice mode */}
-            {canUseVoice && (
-              <div className="relative shrink-0">
-                {/* Audio level pulse ring */}
-                {isRecording && (
-                  <span
-                    className="absolute inset-0 rounded-full bg-red-400/25 transition-transform duration-75"
-                    style={{ transform: `scale(${1 + audioLevel * 0.9})` }}
-                  />
+            <div className="border-t border-gray-100 px-3 py-2.5">
+              <form
+                onSubmit={(e) => { e.preventDefault(); handleSendText(); }}
+                className="flex items-center gap-1.5"
+              >
+                {canUseVoice && (
+                  <div className="relative shrink-0 flex items-center justify-center">
+                    {isRecording && (
+                      <span
+                        className="absolute rounded-full bg-red-400/20 transition-transform duration-75 pointer-events-none"
+                        style={{ inset: "-4px", transform: `scale(${1 + audioLevel * 0.6})` }}
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (isRecording) {
+                          voiceAutoModeRef.current = false;
+                          const txt = transcript.trim();
+                          if (txt) { autoSendVoice(txt); } else { stopListening(); }
+                        } else {
+                          if (isSpeaking) {
+                            ttsAbortRef.current?.abort();
+                            if (ttsSourceRef.current) { ttsSourceRef.current.pause(); ttsSourceRef.current = null; }
+                            setIsSpeaking(false);
+                          }
+                          voiceAutoModeRef.current = true;
+                          setTranscript(""); setInterimTranscript("");
+                          startListening();
+                        }
+                      }}
+                      className={cn(
+                        "relative h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200",
+                        isRecording
+                          ? "bg-red-500 text-white scale-110 shadow-sm shadow-red-200"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      )}
+                    >
+                      {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    </button>
+                  </div>
                 )}
+                <Input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder={isSpeaking ? "Agent is speaking…" : isRecording ? "Tap mic to send" : "Type a message…"}
+                  disabled={isSending}
+                  className="flex-1 h-10 bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 text-sm rounded-xl focus-visible:ring-1 focus-visible:ring-gray-300"
+                />
                 <button
-                  type="button"
-                  disabled={isSpeaking}
-                  onClick={() => {
-                    if (isRecording) {
-                      // User manually stops mic → disable auto-cycle
-                      voiceAutoModeRef.current = false;
-                      const txt = transcript.trim();
-                      if (txt) { autoSendVoice(txt); } else { stopListening(); }
-                    } else {
-                      // User manually starts mic → enable auto-cycle
-                      voiceAutoModeRef.current = true;
-                      setTranscript(""); setInterimTranscript("");
-                      startListening();
-                    }
-                  }}
+                  type={isRecording && transcript.trim() ? "button" : "submit"}
+                  onClick={isRecording && transcript.trim() ? () => autoSendVoice(transcript.trim()) : undefined}
+                  disabled={(!input.trim() && !(isRecording && transcript.trim())) || isSending}
                   className={cn(
-                    "relative h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200",
-                    isSpeaking
-                      ? "bg-gray-100 text-gray-300 cursor-not-allowed"
-                      : isRecording
-                        ? "bg-red-500 text-white scale-110 shadow-sm shadow-red-200"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    "h-10 w-10 rounded-full flex items-center justify-center shrink-0 transition-all",
+                    (input.trim() || (isRecording && transcript.trim())) && !isSending
+                      ? "bg-gray-900 text-white hover:bg-gray-800"
+                      : "bg-gray-100 text-gray-300"
                   )}
                 >
-                  {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </button>
-              </div>
-            )}
-
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={isSpeaking ? "Agent is speaking..." : isRecording ? "Listening... click mic to send" : "Type a message..."}
-              disabled={isSending || isSpeaking}
-              className="flex-1 h-10 bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 text-sm rounded-lg focus-visible:ring-1 focus-visible:ring-gray-300"
-            />
-
-            <button
-              type="submit"
-              disabled={!input.trim() || isSending || isSpeaking}
-              className={cn(
-                "h-10 w-10 rounded-full flex items-center justify-center shrink-0 transition-all",
-                input.trim() && !isSending && !isSpeaking
-                  ? "bg-gray-900 text-white hover:bg-gray-800"
-                  : "bg-gray-100 text-gray-300"
-              )}
-            >
-              {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </button>
-          </form>
-
-          {/* Live transcript bar */}
-          {isRecording && transcript.trim() && (
-            <div className="max-w-3xl mx-auto mt-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
-              <p className="text-sm text-gray-700 leading-relaxed flex items-center gap-1.5">
-                <Mic className="h-3 w-3 text-gray-500 shrink-0" />
-                <span className="flex-1">{transcript}<span className="text-gray-400">{interimTranscript}</span></span>
-                <button onClick={() => autoSendVoice(transcript.trim())} className="ml-2 text-xs text-gray-900 font-medium hover:underline shrink-0">Send</button>
-              </p>
+              </form>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

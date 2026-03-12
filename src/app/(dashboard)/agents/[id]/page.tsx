@@ -97,6 +97,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
   const [isSavingAnalysis, setIsSavingAnalysis] = useState(false);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [embedCopied, setEmbedCopied] = useState(false);
 
   // Editable agent settings - Agent Tab
   const [systemPrompt, setSystemPrompt] = useState("");
@@ -533,11 +534,11 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                   </div>
                   <Button variant="outline" size="sm" onClick={() => {
                     navigator.clipboard.writeText(getEmbedCode());
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 2000);
+                    setEmbedCopied(true);
+                    setTimeout(() => setEmbedCopied(false), 2000);
                   }}>
-                    {copied ? <Check className="h-3.5 w-3.5 mr-1.5" /> : <Copy className="h-3.5 w-3.5 mr-1.5" />}
-                    {copied ? "Copied!" : "Copy Code"}
+                    {embedCopied ? <Check className="h-3.5 w-3.5 mr-1.5" /> : <Copy className="h-3.5 w-3.5 mr-1.5" />}
+                    {embedCopied ? "Copied!" : "Copy Code"}
                   </Button>
                 </div>
               </div>

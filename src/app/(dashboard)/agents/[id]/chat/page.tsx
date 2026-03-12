@@ -287,7 +287,7 @@ export default function AgentChatPage({ params }: { params: Promise<{ id: string
         setMessages(msgs);
         if (msgs.length > 0 && audioEnabled && agent.voiceEnabled) {
           speakMessage(msgs[0].content);
-        } else if (agent.voiceEnabled && speechSupported) {
+        } else if (speechSupported) {
           setTimeout(() => startListening(), 300);
         }
       }
@@ -383,7 +383,7 @@ export default function AgentChatPage({ params }: { params: Promise<{ id: string
       if (micSourceRef.current && mixedDestRef.current) {
         try { micSourceRef.current.connect(mixedDestRef.current); } catch { /* */ }
       }
-      if (agent?.voiceEnabled && !isRecordingRef.current) setTimeout(() => startListening(), 300);
+      if (!isRecordingRef.current) setTimeout(() => startListening(), 300);
     };
 
     if (ctx && mixedDest) {
@@ -419,7 +419,7 @@ export default function AgentChatPage({ params }: { params: Promise<{ id: string
       utt.onstart = () => setIsSpeaking(true);
       utt.onend = () => {
         setIsSpeaking(false);
-        if (agent?.voiceEnabled && !isRecordingRef.current) setTimeout(() => startListening(), 300);
+        if (!isRecordingRef.current) setTimeout(() => startListening(), 300);
       };
       utt.onerror = () => setIsSpeaking(false);
       window.speechSynthesis.speak(utt);
@@ -553,7 +553,7 @@ export default function AgentChatPage({ params }: { params: Promise<{ id: string
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-full gap-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -582,16 +582,16 @@ export default function AgentChatPage({ params }: { params: Promise<{ id: string
         </div>
       </div>
 
-      <div className={cn("grid gap-6", debugMode ? "md:grid-cols-3" : "")}>
+      <div className={cn("flex-1 min-h-0 grid gap-6", debugMode ? "md:grid-cols-3" : "")}>
         {/* ── Main conversation area ── */}
-        <div className={cn("bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col", debugMode ? "md:col-span-2" : "")}>
+        <div className={cn("bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col min-h-0", debugMode ? "md:col-span-2" : "")}>
           {!started ? (
             /* ── Start screen ── */
             <div className="flex flex-col items-center justify-center py-16 px-8 text-center gap-6">
               <div className="relative overflow-visible">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-indigo-400/20 rounded-full blur-3xl scale-150" />
                 <div className="relative overflow-visible">
-                  <AIOrb state="idle" size="xl" className="drop-shadow-2xl" />
+                  <AIOrb state="idle" size={200} className="drop-shadow-2xl" />
                 </div>
               </div>
 
@@ -634,7 +634,7 @@ export default function AgentChatPage({ params }: { params: Promise<{ id: string
             </div>
           ) : (
             /* ── Active conversation ── */
-            <div className="flex flex-col h-[600px]">
+            <div className="flex flex-col flex-1 min-h-0">
               {/* Chat header */}
               <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 bg-white/80 backdrop-blur-sm">
                 <div className="flex items-center gap-3">
@@ -739,7 +739,8 @@ export default function AgentChatPage({ params }: { params: Promise<{ id: string
                   <>
                     <AIOrb
                       state={voiceState === "thinking" ? "listening" : voiceState}
-                      size={messages.length > 0 ? "md" : "lg"}
+                      size={messages.length > 0 ? 140 : 180}
+                      audioLevel={audioLevel}
                       className="drop-shadow-xl"
                     />
                     <div className="mt-3 min-h-[32px] max-w-lg text-center px-4">
@@ -776,7 +777,7 @@ export default function AgentChatPage({ params }: { params: Promise<{ id: string
                     onSubmit={(e) => { e.preventDefault(); handleSendText(); }}
                     className="flex items-center gap-3"
                   >
-                    {agent.voiceEnabled && speechSupported && (
+                    {speechSupported && (
                       <button
                         type="button"
                         disabled={isSpeaking}

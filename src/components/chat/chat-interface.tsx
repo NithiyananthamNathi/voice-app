@@ -152,9 +152,9 @@ export function ChatInterface({ agentName, agentAvatar }: ChatInterfaceProps) {
       {/* AI Orb - Show when no messages or agent is speaking */}
       {(messages.length <= 1 || isSpeaking || isLoading) && (
         <div className="absolute inset-x-0 top-24 flex justify-center pointer-events-none z-10">
-          <AIOrb 
+          <AIOrb
             state={isSpeaking ? "speaking" : isLoading ? "listening" : "idle"}
-            size="lg"
+            size={160}
             className="drop-shadow-2xl"
           />
         </div>

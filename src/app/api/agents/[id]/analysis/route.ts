@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { agents, conversations, evaluationResults, collectedData } from "@/lib/store";
+import { agents, conversations, evaluationResults, collectedData, messages } from "@/lib/store";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -53,11 +53,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const results = evaluationResults.findByConversation(conv.id);
     const data = collectedData.findByConversation(conv.id);
     const passed = results.filter(r => r.result === true).length;
+    const msgCount = messages.findByConversation(conv.id).length;
     return {
       conversationId: conv.id,
       callerName: conv.callerName,
       createdAt: conv.createdAt,
       mode: conv.mode,
+      duration: conv.duration,
+      messageCount: msgCount,
       evaluationResults: results,
       collectedData: data,
       summary: {

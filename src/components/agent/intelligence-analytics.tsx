@@ -36,7 +36,7 @@ interface IntelligenceAnalyticsProps {
 
 export function IntelligenceAnalytics({ conversations }: IntelligenceAnalyticsProps) {
   // Filter conversations with intelligence
-  const withIntelligence = conversations.filter(c => c.intelligence !== null);
+  const withIntelligence = conversations.filter(c => c.intelligence != null && !!(c.intelligence as ConversationIntelligence).personaArchetype);
   
   if (withIntelligence.length === 0) {
     return (
@@ -367,18 +367,26 @@ interface StatCardProps {
   tooltip: string;
 }
 
+const statColorMap: Record<string, { bg: string; text: string }> = {
+  blue:   { bg: "bg-blue-100",   text: "text-blue-600" },
+  emerald:{ bg: "bg-emerald-100",text: "text-emerald-600" },
+  amber:  { bg: "bg-amber-100",  text: "text-amber-600" },
+  violet: { bg: "bg-violet-100", text: "text-violet-600" },
+};
+
 function StatCard({ icon, label, value, color, tooltip }: StatCardProps) {
+  const colors = statColorMap[color] ?? statColorMap.blue;
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <Card className="p-4 hover:shadow-md transition-shadow cursor-help">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg bg-${color}-100`}>
-              <div className={`text-${color}-600`}>{icon}</div>
+            <div className={`p-2 rounded-lg ${colors.bg}`}>
+              <div className={colors.text}>{icon}</div>
             </div>
             <div>
               <p className="text-xs text-slate-500">{label}</p>
-              <p className={`text-2xl font-bold text-${color}-600`}>{value}</p>
+              <p className={`text-2xl font-bold ${colors.text}`}>{value}</p>
             </div>
           </div>
         </Card>
@@ -395,7 +403,7 @@ function StatCard({ icon, label, value, color, tooltip }: StatCardProps) {
 function calculateMetrics(conversations: ConversationWithIntelligence[]) {
   const intelligences = conversations
     .map(c => c.intelligence)
-    .filter((i): i is ConversationIntelligence => i !== null);
+    .filter((i): i is ConversationIntelligence => i != null && !!i.personaArchetype);
 
   // Persona distribution
   const personaCounts = new Map<PersonaArchetype, number>();

@@ -59,15 +59,15 @@ export default function DashboardPage() {
     },
     {
       name: "Voice Sessions",
-      value: Math.floor(totalConversations * 0.6).toLocaleString(),
-      change: "Voice interactions",
+      value: "--",
+      change: "See Analytics for details",
       icon: Mic,
       color: "text-gray-600 bg-gray-100",
     },
     {
       name: "Avg. Duration",
-      value: "4m 12s",
-      change: "Per conversation",
+      value: "--",
+      change: "See Analytics for details",
       icon: Clock,
       color: "text-gray-600 bg-gray-100",
     },
@@ -95,8 +95,12 @@ export default function DashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.name} className="bg-white border-gray-200 shadow-sm">
+        {stats.map((stat, i) => (
+          <Card
+            key={stat.name}
+            className="bg-white border-gray-200 shadow-sm animate-in fade-in-0 slide-in-from-bottom-2 duration-300"
+            style={{ animationDelay: `${i * 60}ms`, animationFillMode: "both" }}
+          >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-gray-500">
                 {stat.name}
@@ -177,7 +181,7 @@ export default function DashboardPage() {
       {/* Quick Actions */}
       <div className="grid gap-4 md:grid-cols-3">
         <Link href="/agents/new">
-          <div className="p-5 rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer bg-white">
+          <div className="p-5 rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200 cursor-pointer bg-white">
             <Bot className="h-7 w-7 text-gray-600 mb-3" />
             <h3 className="text-sm font-medium text-gray-900">Create Agent</h3>
             <p className="text-xs text-gray-500 mt-1">
@@ -186,7 +190,7 @@ export default function DashboardPage() {
           </div>
         </Link>
         <Link href="/knowledge">
-          <div className="p-5 rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer bg-white">
+          <div className="p-5 rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200 cursor-pointer bg-white">
             <MessageSquare className="h-7 w-7 text-gray-600 mb-3" />
             <h3 className="text-sm font-medium text-gray-900">Knowledge Base</h3>
             <p className="text-xs text-gray-500 mt-1">
@@ -195,7 +199,7 @@ export default function DashboardPage() {
           </div>
         </Link>
         <Link href="/conversations">
-          <div className="p-5 rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer bg-white">
+          <div className="p-5 rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200 cursor-pointer bg-white">
             <Mic className="h-7 w-7 text-gray-600 mb-3" />
             <h3 className="text-sm font-medium text-gray-900">Conversations</h3>
             <p className="text-xs text-gray-500 mt-1">

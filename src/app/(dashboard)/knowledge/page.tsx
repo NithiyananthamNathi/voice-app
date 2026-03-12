@@ -74,7 +74,7 @@ function KnowledgeBaseCard({
   const StatusIcon = status.icon;
 
   return (
-    <div className="flex items-center justify-between p-5 rounded-xl bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all">
+    <div className="flex items-center justify-between p-5 rounded-xl bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200">
       <div className="flex items-start gap-4 flex-1">
         <div className="p-3 rounded-lg bg-gray-50 border border-gray-100">
           <DatabaseIcon className="h-6 w-6 text-gray-600" />
@@ -162,6 +162,7 @@ export default function KnowledgePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [urlInput, setUrlInput] = useState("");
+  const [kbSearch, setKbSearch] = useState("");
 
   useEffect(() => {
     fetchKnowledgeBases();
@@ -247,6 +248,10 @@ export default function KnowledgePage() {
       "text/markdown": [".md"],
     },
   });
+
+  const filteredKBs = kbSearch
+    ? knowledgeBases.filter(kb => kb.name.toLowerCase().includes(kbSearch.toLowerCase()))
+    : knowledgeBases;
 
   const totalCharacters = knowledgeBases.reduce((sum, kb) => sum + kb.charCount, 0);
   const maxCharacters = 1000000;
@@ -340,6 +345,8 @@ export default function KnowledgePage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Search knowledge bases..."
+                  value={kbSearch}
+                  onChange={(e) => setKbSearch(e.target.value)}
                   className="pl-10 bg-white border-gray-300 text-gray-900"
                 />
               </div>
@@ -357,7 +364,7 @@ export default function KnowledgePage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {knowledgeBases.map((kb) => (
+              {filteredKBs.map((kb) => (
                 <KnowledgeBaseCard key={kb.id} kb={kb} onDelete={handleDelete} />
               ))}
             </div>

@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -90,6 +93,23 @@ const mockVoices = [
 ];
 
 export default function VoicesPage() {
+  const [search, setSearch] = useState("");
+  const [filterLanguage, setFilterLanguage] = useState("all");
+  const [filterGender, setFilterGender] = useState("all");
+  const [filterCategory, setFilterCategory] = useState("all");
+
+  const filteredVoices = mockVoices.filter(v => {
+    const q = search.toLowerCase();
+    const matchSearch = !q ||
+      v.name.toLowerCase().includes(q) ||
+      v.description.toLowerCase().includes(q) ||
+      v.tags.toLowerCase().includes(q);
+    return matchSearch
+      && (filterLanguage === "all" || v.language === filterLanguage)
+      && (filterGender === "all" || v.gender === filterGender)
+      && (filterCategory === "all" || v.category === filterCategory);
+  });
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -115,11 +135,13 @@ export default function VoicesPage() {
           <Input
             type="search"
             placeholder="Search voices..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
           />
         </div>
 
-        <Select defaultValue="all">
+        <Select value={filterLanguage} onValueChange={setFilterLanguage}>
           <SelectTrigger className="w-[140px] bg-white border-gray-300 text-gray-900">
             <SelectValue placeholder="Language" />
           </SelectTrigger>
@@ -132,7 +154,7 @@ export default function VoicesPage() {
           </SelectContent>
         </Select>
 
-        <Select defaultValue="all">
+        <Select value={filterGender} onValueChange={setFilterGender}>
           <SelectTrigger className="w-[120px] bg-white border-gray-300 text-gray-900">
             <SelectValue placeholder="Gender" />
           </SelectTrigger>
@@ -144,7 +166,7 @@ export default function VoicesPage() {
           </SelectContent>
         </Select>
 
-        <Select defaultValue="all">
+        <Select value={filterCategory} onValueChange={setFilterCategory}>
           <SelectTrigger className="w-[130px] bg-white border-gray-300 text-gray-900">
             <SelectValue placeholder="Category" />
           </SelectTrigger>
@@ -157,9 +179,9 @@ export default function VoicesPage() {
       </div>
 
       {/* Voice Grid */}
-      {mockVoices.length > 0 ? (
+      {filteredVoices.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {mockVoices.map((voice) => (
+          {filteredVoices.map((voice) => (
             <VoiceCard key={voice.id} voice={voice} />
           ))}
         </div>

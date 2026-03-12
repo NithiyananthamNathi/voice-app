@@ -93,15 +93,16 @@ const fmtFullDate = (d: string) =>
   new Date(d).toLocaleString([], { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
 // Persona legend data
+// Abbreviations are generated as: personaArchetype.split('_').map(w => w[0]).join('')
 const PERSONA_LEGEND = [
-  { abbr: "AW", full: "Anxious Worrier", desc: "Stressed and seeking reassurance" },
-  { abbr: "IS", full: "Information Seeker", desc: "Wants to learn and understand" },
-  { abbr: "SP", full: "Symptom Presenter", desc: "Focused on specific symptoms" },
-  { abbr: "SK", full: "Skeptical Questioner", desc: "Doubtful, needs convincing" },
-  { abbr: "CG", full: "Caregiver", desc: "Seeking info for someone else" },
-  { abbr: "PE", full: "Proactive Explorer", desc: "Preventive health focused" },
-  { abbr: "DTA", full: "Decision-Torn Ambivalent", desc: "Struggling with choices" },
-  { abbr: "CP", full: "Chronic Patient", desc: "Managing ongoing condition" },
+  { abbr: "AW", full: "Anxious Worrier",      desc: "Stressed, seeks reassurance, 'what if' questions" },
+  { abbr: "IS", full: "Information Seeker",   desc: "Rapid detailed questions, mechanism interest" },
+  { abbr: "ND", full: "Newly Diagnosed",      desc: "Recently diagnosed, fear and confusion" },
+  { abbr: "CG", full: "Caregiver",            desc: "Asking about someone else — child, parent" },
+  { abbr: "AT", full: "Action Taker",         desc: "'What can I do', prevention and step focus" },
+  { abbr: "VP", full: "Veteran Patient",      desc: "Long history, nuanced medical questions" },
+  { abbr: "EP", full: "Emotional Processor",  desc: "Shares story, expresses frustration or grief" },
+  { abbr: "S",  full: "Skeptic",              desc: "Questions medical advice, seeks alternatives" },
 ];
 
 const sourceLabel = (source: string) => {

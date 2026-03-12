@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,49 +50,12 @@ interface IntelligenceTrendsProps {
 }
 
 export function IntelligenceTrends({ conversations }: IntelligenceTrendsProps) {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const pathname = usePathname();
-
-  // Initialize state from URL params or defaults
-  const [timeRange, setTimeRange] = useState<"7d" | "14d" | "30d" | "90d">(
-    (searchParams.get("timeRange") as "7d" | "14d" | "30d" | "90d") || "30d"
-  );
-  const [personaFilter, setPersonaFilter] = useState<PersonaArchetype | "all">(
-    (searchParams.get("persona") as PersonaArchetype) || "all"
-  );
-  const [intentFilter, setIntentFilter] = useState<PrimaryIntent | "all">(
-    (searchParams.get("intent") as PrimaryIntent) || "all"
-  );
-
-  // Sync state changes to URL
-  useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    
-    if (timeRange !== "30d") {
-      params.set("timeRange", timeRange);
-    } else {
-      params.delete("timeRange");
-    }
-    
-    if (personaFilter !== "all") {
-      params.set("persona", personaFilter);
-    } else {
-      params.delete("persona");
-    }
-    
-    if (intentFilter !== "all") {
-      params.set("intent", intentFilter);
-    } else {
-      params.delete("intent");
-    }
-    
-    const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
-    router.replace(newUrl, { scroll: false });
-  }, [timeRange, personaFilter, intentFilter, pathname, router, searchParams]);
+  const [timeRange, setTimeRange] = useState<"7d" | "14d" | "30d" | "90d">("30d");
+  const [personaFilter, setPersonaFilter] = useState<PersonaArchetype | "all">("all");
+  const [intentFilter, setIntentFilter] = useState<PrimaryIntent | "all">("all");
 
   // Filter conversations
-  const withIntelligence = conversations.filter(c => c.intelligence !== null);
+  const withIntelligence = conversations.filter(c => c.intelligence != null);
 
   const { filteredConversations, timeSeriesData, insights, trends } = useMemo(() => {
     // Apply time range filter
@@ -464,14 +426,22 @@ interface TrendCardProps {
   color: string;
 }
 
+const trendColorMap: Record<string, { bg: string; text: string }> = {
+  emerald:{ bg: "bg-emerald-100", text: "text-emerald-600" },
+  green:  { bg: "bg-green-100",   text: "text-green-600" },
+  violet: { bg: "bg-violet-100",  text: "text-violet-600" },
+  indigo: { bg: "bg-indigo-100",  text: "text-indigo-600" },
+};
+
 function TrendCard({ label, value, change, changePercent, icon, color }: TrendCardProps) {
   const isPositive = change >= 0;
-  
+  const colors = trendColorMap[color] ?? trendColorMap.emerald;
+
   return (
     <Card className="p-4">
       <div className="flex items-start justify-between mb-2">
-        <div className={`p-2 rounded-lg bg-${color}-100`}>
-          <div className={`text-${color}-600`}>{icon}</div>
+        <div className={`p-2 rounded-lg ${colors.bg}`}>
+          <div className={colors.text}>{icon}</div>
         </div>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -498,7 +468,7 @@ function TrendCard({ label, value, change, changePercent, icon, color }: TrendCa
         </Tooltip>
       </div>
       <p className="text-xs text-slate-500 mb-1">{label}</p>
-      <p className={`text-2xl font-bold text-${color}-600`}>{value}</p>
+      <p className={`text-2xl font-bold ${colors.text}`}>{value}</p>
     </Card>
   );
 }
