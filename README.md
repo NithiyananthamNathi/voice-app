@@ -133,19 +133,30 @@ To learn more about Next.js, take a look at the following resources:
 ### GitHub Repository
 🔗 [https://github.com/NithiyananthamNathi/voice-app](https://github.com/NithiyananthamNathi/voice-app)
 
-### Quick Deploy to Vercel
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Quick Deploy to Cloudflare Pages (Recommended)
+Deploy your Next.js app with Cloudflare Pages for excellent global performance with their CDN and generous free tier.
 
 **Automatic Deployments Enabled:**
 - ✅ Push to `main` branch → Production deployment
 - ✅ Push to other branches → Preview deployments  
 - ✅ Pull requests → Automatic preview URLs
 
-For detailed deployment instructions, including Vercel, Railway, and Netlify setup, see our **[DEPLOYMENT.md](./DEPLOYMENT.md)** guide.
+**Get Started:**
+1. Go to [Cloudflare Pages](https://pages.cloudflare.com)
+2. Connect your GitHub account
+3. Select the `voice-app` repository
+4. Configure build settings (auto-detected for Next.js)
+5. Add environment variables
+6. Deploy! 🚀
+
+Your app will be live at: `https://your-project.pages.dev`
+
+For detailed deployment instructions including Cloudflare, Vercel, Railway, and Netlify setup, see our **[DEPLOYMENT.md](./DEPLOYMENT.md)** guide.
 
 ### Required Environment Variables
-Remember to set your environment variables in the Vercel dashboard:
+Set these in your deployment platform:
 - `NEXTAUTH_SECRET` - Required for production (generate with `openssl rand -base64 32`)
-- `NEXTAUTH_URL` - Your production URL (e.g., `https://your-app.vercel.app`)
+- `NEXTAUTH_URL` - Your production URL (e.g., `https://your-app.pages.dev`)
+- `NODE_VERSION` - Set to `18` or `20` for Cloudflare Pages
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Check out the [DEPLOYMENT.md](./DEPLOYMENT.md) guide for platform-specific instructions.
