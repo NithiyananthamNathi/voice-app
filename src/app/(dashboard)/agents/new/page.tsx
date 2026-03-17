@@ -35,7 +35,6 @@ import {
   Zap,
   Clock,
   Shield,
-  Music,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -271,15 +270,6 @@ const languages = [
   { code: "tr", name: "Turkish", flag: "🇹🇷" },
 ];
 
-// Ambient sounds for tool calls
-const ambientSounds = [
-  { id: "none", name: "None", description: "No ambient sound" },
-  { id: "office", name: "Office", description: "Subtle office ambiance" },
-  { id: "keyboard", name: "Keyboard", description: "Typing sounds" },
-  { id: "processing", name: "Processing", description: "Digital processing sounds" },
-  { id: "nature", name: "Nature", description: "Calm nature sounds" },
-];
-
 export default function NewAgentPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
@@ -326,7 +316,6 @@ export default function NewAgentPage() {
   const [silenceTimeout, setSilenceTimeout] = useState(5);
   const [responseTimeout, setResponseTimeout] = useState(30);
   const [maxDuration, setMaxDuration] = useState(600);
-  const [ambientSound, setAmbientSound] = useState("none");
   const [endCallOnGoodbye, setEndCallOnGoodbye] = useState(true);
 
   // Analysis state
@@ -498,7 +487,6 @@ export default function NewAgentPage() {
           silenceTimeout,
           responseTimeout,
           maxDuration,
-          ambientSound: ambientSound === "none" ? null : ambientSound,
           endCallOnGoodbye,
           // Analysis
           analysisLanguage,
@@ -1185,32 +1173,6 @@ export default function NewAgentPage() {
                       <SelectItem value="3600">1 hour</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-              </div>
-
-              {/* Ambient Sound */}
-              <div className="border-t pt-6 space-y-4">
-                <h3 className="font-medium text-gray-900 flex items-center gap-2">
-                  <Music className="h-4 w-4" /> Tool Call Sounds
-                </h3>
-                <div className="space-y-2">
-                  <Label className="text-gray-700">Ambient Sound</Label>
-                  <Select value={ambientSound} onValueChange={setAmbientSound}>
-                    <SelectTrigger className="bg-white border-gray-300"><SelectValue /></SelectTrigger>
-                    <SelectContent className="bg-white">
-                      {ambientSounds.map((sound) => (
-                        <SelectItem key={sound.id} value={sound.id}>
-                          <div className="flex flex-col">
-                            <span>{sound.name}</span>
-                            <span className="text-xs text-gray-500">{sound.description}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-gray-500">
-                    Audio feedback during tool execution to fill silence
-                  </p>
                 </div>
               </div>
             </div>

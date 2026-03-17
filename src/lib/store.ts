@@ -267,6 +267,39 @@ export interface CollectedData {
   createdAt: string;
 }
 
+// ── Eval Run Types (Judge + Critique evaluation) ─────────────────────────────
+
+export interface EvalRound {
+  roundNumber: number;
+  judge: {
+    status: "YES" | "NO" | "PARTIAL";
+    reason: string;
+  };
+  critique: {
+    confidence: number;
+    feedback: string;
+  };
+}
+
+export interface EvalRun {
+  id: string;
+  agentId: string;
+  agentName: string;
+  conversationId: string;
+  conversationName: string;
+  rubricCategory: string;
+  rubricSubCategory: string;
+  criteria: string;
+  judgeModel: string;
+  critiqueModel: string;
+  status: "pending" | "running" | "completed" | "failed";
+  rounds: EvalRound[];
+  finalVerdict: "YES" | "NO" | "PARTIAL" | null;
+  finalConfidence: number | null;
+  userId: string;
+  createdAt: string;
+}
+
 export interface KnowledgeBase {
   id: string;
   name: string;
@@ -294,6 +327,7 @@ const g = globalThis as unknown as {
     evaluationResults: EvaluationResult[];
     collectedData: CollectedData[];
     knowledgeBases: KnowledgeBase[];
+    evalRuns: EvalRun[];
   } | undefined;
 };
 
@@ -316,6 +350,7 @@ if (!g._store) {
     evaluationResults: [],
     collectedData: [],
     knowledgeBases: [],
+    evalRuns: [],
   };
 
   // Auto-seed demo agent with full data
@@ -780,6 +815,172 @@ function seedDemoData(s: NonNullable<typeof g._store>) {
       conv.intelligence = generateConversationIntelligence(conv.id, sessionNumber);
     }
   });
+
+  // -- Seed Demo Eval Runs (Judge + Critique) --
+  if (!s.evalRuns) s.evalRuns = [];
+
+  const demoEvalRuns: Omit<EvalRun, "id">[] = [
+    {
+      agentId,
+      agentName: "Asthma Consultation Agent",
+      conversationId: "demo-conv-001",
+      conversationName: "Sarah Johnson",
+      rubricCategory: "Diagnostic Reasoning & Workup",
+      rubricSubCategory: "Case-Based Clinical Reasoning",
+      criteria: "Does the model correctly assess absolute vs relative contraindications?",
+      judgeModel: "claude-sonnet-4-5-20250514",
+      critiqueModel: "gemini-2.5-pro",
+      status: "completed",
+      rounds: [
+        {
+          roundNumber: 1,
+          judge: {
+            status: "YES",
+            reason: "The AI assistant correctly assesses absolute vs relative contraindications for auricular acupuncture (BFA) in the context of non-metastatic solid organ cancer. The response appropriately identifies that severe neutropenia (ANC < 500) requires caution due to infection risk, explicitly identifies thrombocytopenia (platelets < 50,000) as a \"relative contraindication\", and notes active anticoagulation as \"usually not absolute contraindication, but assess INR and bleeding risk\". The response demonstrates clear understanding of the distinction between absolute and relative contraindications.",
+          },
+          critique: {
+            confidence: 100,
+            feedback: "The physician's evaluation is exemplary and requires no correction. The analysis is perfectly structured, breaking down the AI's response into clinically relevant categories. The evaluator correctly identifies the accurate differentiation between absolute and relative contraindications with specific clinical thresholds (ANC < 500, Platelets < 50,000).",
+          },
+        },
+        {
+          roundNumber: 2,
+          judge: {
+            status: "PARTIAL",
+            reason: "After additional research, the AI assistant's response demonstrates partial correctness. The conceptual framework is correct, but the specific clinical guidance lacks nuance: the platelet threshold of <50,000 varies across institutions (some studies show safety at <20,000/μL), the neutropenia threshold is oversimplified (some sources use <100/mm³), and BFA-specific contraindications (pregnancy, keloid history) are not distinguished from general acupuncture contraindications. The response is adequate for education but insufficient for clinical decision-making.",
+          },
+          critique: {
+            confidence: 92,
+            feedback: "This revised evaluation is significantly stronger. The physician has addressed most concerns from the initial critique and conducted additional research. Excellent evidence-based approach citing specific studies. Minor areas for improvement include source verification transparency and could strengthen the conclusion by explicitly stating what a clinician should do before proceeding with BFA.",
+          },
+        },
+      ],
+      finalVerdict: "PARTIAL",
+      finalConfidence: 92,
+      userId: "demo-user-001",
+      createdAt: new Date(now.getTime() - 2 * 86400000).toISOString(),
+    },
+    {
+      agentId,
+      agentName: "Asthma Consultation Agent",
+      conversationId: "demo-conv-002",
+      conversationName: "Michael Chen",
+      rubricCategory: "Treatment Decision-Making",
+      rubricSubCategory: "Treatment Escalation",
+      criteria: "Does the model explicitly recognize that current or prior management may be inadequate or failing?",
+      judgeModel: "claude-sonnet-4-5-20250514",
+      critiqueModel: "gemini-2.5-pro",
+      status: "completed",
+      rounds: [
+        {
+          roundNumber: 1,
+          judge: {
+            status: "YES",
+            reason: "The AI correctly recognized that the patient's increased rescue inhaler use (daily, sometimes twice daily) and worsening nighttime symptoms indicate inadequate asthma control. The agent appropriately escalated by recommending a medication review and emphasized the importance of controller medication adherence. The response demonstrates proper treatment escalation reasoning aligned with GINA guidelines.",
+          },
+          critique: {
+            confidence: 88,
+            feedback: "The evaluation is solid but could be improved. The physician correctly identified the escalation recognition but should have noted that the AI didn't explicitly assess current controller medication dose/compliance before recommending escalation. The evaluation could also address whether step-up therapy options were discussed. Minor deduction for not critiquing the AI's omission of specific next-step medications.",
+          },
+        },
+      ],
+      finalVerdict: "YES",
+      finalConfidence: 88,
+      userId: "demo-user-001",
+      createdAt: new Date(now.getTime() - 1 * 86400000).toISOString(),
+    },
+    {
+      agentId,
+      agentName: "Asthma Consultation Agent",
+      conversationId: "demo-conv-004",
+      conversationName: "James Wilson",
+      rubricCategory: "Treatment Decision-Making",
+      rubricSubCategory: "Drug Information & Safety",
+      criteria: "Does the model provide accurate and clinically sound drug information?",
+      judgeModel: "claude-sonnet-4-5-20250514",
+      critiqueModel: "gemini-2.5-pro",
+      status: "completed",
+      rounds: [
+        {
+          roundNumber: 1,
+          judge: {
+            status: "NO",
+            reason: "The AI assistant did not provide sufficiently specific drug information. While it mentioned fluticasone and albuterol by name and suggested stepping up therapy, it failed to discuss specific drug safety information, potential adverse effects of long-term corticosteroid use, or alternative medication options. The suggestion to see a pulmonologist was appropriate but the drug information provided was too general.",
+          },
+          critique: {
+            confidence: 78,
+            feedback: "The physician's NO verdict is justified but the evaluation could be more nuanced. The AI was acting as a consultation agent, not a prescribing tool, so expecting detailed drug safety profiles may be beyond scope. However, the physician correctly identified that the AI should have at least mentioned checking inhaler technique in detail and discussed common reasons for fluticasone failure (poor technique, non-adherence, wrong diagnosis). Suggestion: Consider context-appropriate expectations for drug information depth.",
+          },
+        },
+      ],
+      finalVerdict: "NO",
+      finalConfidence: 78,
+      userId: "demo-user-001",
+      createdAt: new Date(now.getTime() - 3 * 86400000).toISOString(),
+    },
+    {
+      agentId,
+      agentName: "Asthma Consultation Agent",
+      conversationId: "demo-conv-007",
+      conversationName: "Thomas Brown",
+      rubricCategory: "Treatment Decision-Making",
+      rubricSubCategory: "Acute/Emergency Treatment Protocols",
+      criteria: "Does the model correctly recognize scenarios requiring acute or emergency intervention?",
+      judgeModel: "claude-sonnet-4-5-20250514",
+      critiqueModel: "gemini-2.5-pro",
+      status: "completed",
+      rounds: [
+        {
+          roundNumber: 1,
+          judge: {
+            status: "YES",
+            reason: "The AI immediately recognized the severe asthma attack from the patient's inability to speak in full sentences and rescue inhaler not providing relief. It correctly directed the patient to call 911, provided appropriate interim measures (sit upright, stay calm, continue rescue inhaler every 20 minutes), and recognized the life-threatening nature of the situation. The response prioritized immediate safety over continuing the consultation.",
+          },
+          critique: {
+            confidence: 95,
+            feedback: "Excellent evaluation. The physician correctly identified all critical elements of the emergency response. The only minor improvement would be noting whether the AI should have asked about the patient's action plan or peak flow readings before directing to ER, though in this severity level, immediate emergency referral was clearly the correct priority. The evaluation demonstrates strong understanding of emergency triage in acute asthma.",
+          },
+        },
+      ],
+      finalVerdict: "YES",
+      finalConfidence: 95,
+      userId: "demo-user-001",
+      createdAt: new Date(now.getTime() - 5 * 86400000).toISOString(),
+    },
+    {
+      agentId,
+      agentName: "Asthma Consultation Agent",
+      conversationId: "demo-conv-003",
+      conversationName: "Emily Rodriguez",
+      rubricCategory: "Diagnostic Reasoning & Workup",
+      rubricSubCategory: "Diagnostic Workup Planning",
+      criteria: "Does the model propose a diagnostic workup that is clinically appropriate for the presented scenario?",
+      judgeModel: "claude-sonnet-4-5-20250514",
+      critiqueModel: "gemini-2.5-pro",
+      status: "completed",
+      rounds: [
+        {
+          roundNumber: 1,
+          judge: {
+            status: "YES",
+            reason: "For a newly diagnosed asthma patient, the AI appropriately focused on education and trigger identification rather than proposing additional diagnostic workup. It correctly assessed that the patient had a recent diagnosis and tailored the conversation to building understanding of the condition. The approach of starting with trigger identification and environmental management aligns with initial asthma management guidelines.",
+          },
+          critique: {
+            confidence: 82,
+            feedback: "The evaluation is generally correct but misses some important points. While the AI's educational approach was appropriate, the physician should have noted that the AI didn't ask about pulmonary function test results, allergy testing, or current medication regimen - all important for a newly diagnosed patient. The physician should also address whether the AI should have recommended a formal asthma action plan. The score reflects that the evaluation is on the right track but lacks depth in identifying gaps.",
+          },
+        },
+      ],
+      finalVerdict: "YES",
+      finalConfidence: 82,
+      userId: "demo-user-001",
+      createdAt: new Date(now.getTime() - 4 * 86400000).toISOString(),
+    },
+  ];
+
+  for (const run of demoEvalRuns) {
+    s.evalRuns.push({ ...run, id: `demo-eval-run-${s.evalRuns.length + 1}` });
+  }
 }
 
 // Store is guaranteed to be defined after the initialization above
@@ -955,5 +1156,32 @@ export const knowledgeBases = {
         if (a.knowledgeBaseId === id) a.knowledgeBaseId = null;
       });
     }
+  },
+};
+
+// ── Eval Runs (Judge + Critique) ────────────────────────────────────────────
+export const evalRuns = {
+  findAll: (userId: string) =>
+    (store.evalRuns || []).filter(r => r.userId === userId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+  findById: (id: string) => (store.evalRuns || []).find(r => r.id === id) ?? null,
+  findByAgent: (agentId: string) =>
+    (store.evalRuns || []).filter(r => r.agentId === agentId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+  create: (data: Omit<EvalRun, "id" | "createdAt">) => {
+    if (!store.evalRuns) store.evalRuns = [];
+    const run: EvalRun = { ...data, id: uid(), createdAt: new Date().toISOString() };
+    store.evalRuns.push(run);
+    return run;
+  },
+  update: (id: string, data: Partial<EvalRun>) => {
+    if (!store.evalRuns) return null;
+    const i = store.evalRuns.findIndex(r => r.id === id);
+    if (i === -1) return null;
+    store.evalRuns[i] = { ...store.evalRuns[i], ...data };
+    return store.evalRuns[i];
+  },
+  delete: (id: string) => {
+    if (!store.evalRuns) return;
+    const i = store.evalRuns.findIndex(r => r.id === id);
+    if (i !== -1) store.evalRuns.splice(i, 1);
   },
 };

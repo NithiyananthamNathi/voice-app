@@ -170,7 +170,6 @@
 - Copy transcript functionality
 - End conversation button
 - Error handling and loading states
-- Ambient sound support
 
 #### 6. Conversation Management
 - **POST /api/conversations** - Create conversation

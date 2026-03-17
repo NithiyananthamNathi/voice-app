@@ -30,7 +30,7 @@ const configureNav = [
 const monitorNav = [
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Conversations", href: "/conversations", icon: MessageSquare },
-  { name: "Tests", href: "/evaluations", icon: FlaskConical },
+  { name: "Evals", href: "/evaluations", icon: FlaskConical },
 ];
 
 const deployNav = [
@@ -80,11 +80,11 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex items-center gap-2 px-4 h-12">
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex items-center justify-center h-6 w-6 rounded bg-white/10">
+          <div className="flex items-center justify-center h-6 w-6 rounded bg-white/10 shrink-0">
             <Sparkles className="h-3.5 w-3.5 text-white" />
           </div>
-          <span className="text-[15px] font-semibold text-white tracking-tight">
-            VoiceAI
+          <span className="text-[13px] font-semibold text-white tracking-tight leading-tight">
+            Config Driven Dashboard
           </span>
         </Link>
       </div>

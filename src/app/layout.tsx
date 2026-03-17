@@ -11,8 +11,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "VocalMind - AI Voice Agent Platform",
-  description: "VocalMind - Create, deploy, and manage intelligent conversational AI voice agents for healthcare and beyond",
+  title: "Config Driven Dashboard",
+  description: "Config Driven Dashboard - Create, deploy, and manage intelligent conversational AI voice agents for healthcare and beyond",
 };
 
 export default function RootLayout({
